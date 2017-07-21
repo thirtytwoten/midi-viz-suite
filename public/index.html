@@ -72,16 +72,6 @@ MidiConvert.load("./bwv-846.midi").then(function(midi){
     noteData.push(nd);
   });
 
-  // for(let i = notes[0]; i <= notes[notes.length-1]; i++){
-  //   svg.append("rect")
-  //     .attr('id', `key${i}`)
-  //     .attr("x", (i - notes[0]) * 22)
-  //     .attr("y",100)
-  //     .attr("width",20)
-  //     .attr("height",60)
-  //     .attr('fill', 'none');
-  // }
-
   plotData(noteData);
 
 });
