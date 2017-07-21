@@ -88,21 +88,25 @@ MidiConvert.load("./bwv-846.midi").then(function(midi){
 
 ////////////////// scatter plot
 
+function minSecFmt(seconds){
+  let min = parseInt(seconds / 60);
+  let sec = parseInt(seconds % 60);
+  return (min + ":" + (sec < 10 ? '0' : '') + sec);
+}
+
 var margin = {top: 20, right: 20, bottom: 110, left: 50},
     margin2 = {top: 430, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom,
     height2 = 500 - margin2.top - margin2.bottom;
 
-var parseDate = d3.timeParse("%b %Y");
-
-var x = d3.scaleTime().range([0, width]),
-    x2 = d3.scaleTime().range([0, width]),
+var x = d3.scaleLinear().range([0, width]),
+    x2 = d3.scaleLinear().range([0, width]),
     y = d3.scaleLinear().range([height, 0]),
     y2 = d3.scaleLinear().range([height2, 0]);
 
-var xAxis = d3.axisBottom(x),
-    xAxis2 = d3.axisBottom(x2),
+var xAxis = d3.axisBottom(x).tickFormat(minSecFmt),
+    xAxis2 = d3.axisBottom(x2).tickFormat(minSecFmt),
     yAxis = d3.axisLeft(y);
 
 var brush = d3.brushX()
@@ -140,13 +144,12 @@ function plotData(data) {
       noteRects.selectAll("noteRect")
           .data(data)
           .enter().append("rect")
-          .attr('class', function(d) { return 'rect' + ' n' + d.letter; })
+          .attr('class', function(d) { return 'noteRect' + ' n' + d.letter; })
           .style("opacity", .5)
           .attr("x", function(d) { return x(d.time); })
           .attr("y", function(d) { return y(d.keyNumber); })
           .attr("width", function(d) { return x(d.noteOff) - x(d.noteOn); })
-          .attr("height", function(d) { return 5})
-
+          .attr("height", function(d) { return 5});
           
   focus.append("g")
         .attr("class", "axis axis--x")
@@ -163,26 +166,27 @@ function plotData(data) {
         .attr("x",0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Price");  
+        .text("Midi Key");
         
   svg.append("text")             
         .attr("transform",
               "translate(" + ((width + margin.right + margin.left)/2) + " ," + 
                              (height + margin.top + margin.bottom) + ")")
         .style("text-anchor", "middle")
-        .text("Date");
+        .text("Time");
         
   // append scatter plot to brush chart area      
    var dots = context.append("g");
        dots.attr("clip-path", "url(#clip)");
-       dots.selectAll("dot")
+       dots.selectAll("noteRect")
           .data(data)
-          .enter().append("circle")
+          .enter().append("rect")
           .attr('class', function(d) { return 'dotContext' + ' n' + d.letter; })
-          .attr("r",3)
           .style("opacity", .5)
-          .attr("cx", function(d) { return x2(d.time); })
-          .attr("cy", function(d) { return y2(d.keyNumber); })
+          .attr("x", function(d) { return x2(d.time); })
+          .attr("y", function(d) { return y2(d.keyNumber); })
+          .attr("width", function(d) { return x2(d.noteOff) - x2(d.noteOn); })
+          .attr("height", function(d) { return 3});
           
   context.append("g")
         .attr("class", "axis axis--x")
@@ -199,9 +203,9 @@ function plotData(data) {
 function brushed() {
   var selection = d3.event.selection;
   x.domain(selection.map(x2.invert, x2));
-  focus.selectAll(".dot")
-        .attr("cx", function(d) { return x(d.time); })
-        .attr("cy", function(d) { return y(d.keyNumber); });
+  focus.selectAll(".noteRect")
+        .attr("x", function(d) { return x(d.time); })
+        .attr("y", function(d) { return y(d.keyNumber); });
   focus.select(".axis--x").call(xAxis);
 }
 
