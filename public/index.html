@@ -64,7 +64,10 @@ MidiConvert.load("./bwv-846.midi").then(function(midi){
     let nd = {
       letter: getNoteLetter(n),
       keyNumber: parseInt(n.midi),
-      time: n.time
+      time: n.time,
+      duration: n.duration,
+      noteOff: n.noteOff,
+      noteOn: n.noteOn
     }
     noteData.push(nd);
   });
@@ -132,16 +135,18 @@ function plotData(data) {
     
   let i = 0;
   // append scatter plot to main chart area 
-   var dots = focus.append("g");
-      dots.attr("clip-path", "url(#clip)");
-      dots.selectAll("dot")
+   var noteRects = focus.append("g");
+      noteRects.attr("clip-path", "url(#clip)");
+      noteRects.selectAll("noteRect")
           .data(data)
-          .enter().append("circle")
-          .attr('class', function(d) { return 'dot' + ' n' + d.letter; })
-          .attr("r",5)
+          .enter().append("rect")
+          .attr('class', function(d) { return 'rect' + ' n' + d.letter; })
           .style("opacity", .5)
-          .attr("cx", function(d) { return x(d.time); })
-          .attr("cy", function(d) { return y(d.keyNumber); });
+          .attr("x", function(d) { return x(d.time); })
+          .attr("y", function(d) { return y(d.keyNumber); })
+          .attr("width", function(d) { return x(d.noteOff) - x(d.noteOn); })
+          .attr("height", function(d) { return 5})
+
           
   focus.append("g")
         .attr("class", "axis axis--x")
