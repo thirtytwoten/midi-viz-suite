@@ -46,7 +46,7 @@
 <body>
 <script type="text/javascript">
 
-///////// midi data
+///////// midi processing
 
 var midiData, noteData, bpm;
 
@@ -76,7 +76,8 @@ MidiConvert.load("./bwv-846.midi").then(function(midi){
 
 });
 
-////////////////// scatter plot
+////////////////// scatter plot w/ brushing
+///// adapted from http://bl.ocks.org/rajvansia/ce6903fad978d20773c41ee34bf6735c
 
 function minSecFmt(seconds){
   let min = parseInt(seconds / 60);
@@ -126,8 +127,7 @@ function plotData(data) {
   y.domain([d3.min(data, function(d) { return d.keyNumber; })-10, d3.max(data, function(d) { return d.keyNumber; })+10]);
   x2.domain(x.domain());
   y2.domain(y.domain());
-    
-  let i = 0;
+
   // append scatter plot to main chart area 
    var noteRects = focus.append("g");
       noteRects.attr("clip-path", "url(#clip)");
