@@ -5,22 +5,42 @@
      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.js"></script>
      <script type="text/javascript" src="./MidiConvert.js"></script>
     <style>
-/*      body {
-        font: 10px sans-serif;
-      }
-      .axis line {
-        stroke: #000;
-      }
-      .axis path {
-        fill: none;
-        stroke: #000;
-      }
-      .axis + .axis g text {
-        display: none;
-      }*/
-      path {
-        fill: #ddd;
-      }
+    .nA {
+      fill: rgb(110, 64, 170);
+    }
+    .nAs {
+      fill: rgb(178, 60, 178);
+    }
+    .nB {
+      fill: rgb(238, 67, 149);
+    }
+    .nC {
+      fill: rgb(255, 94, 99);
+    }
+    .nCs {
+      fill: rgb(255, 140, 56);
+    }
+    .nD {
+      fill: rgb(217, 194, 49);
+    }
+    .nDs {
+      fill: rgb(175, 240, 91);
+    }
+    .nE {
+      fill: rgb(96, 247, 96);
+    }
+    .nF {
+      fill: rgb(40, 234, 141);
+    }
+    .nFs {
+      fill: rgb(26, 199, 194);
+    }
+    .nG {
+      fill: rgb(47, 150, 224);
+    }
+    .nGs {
+      fill: rgb(84, 101, 214);
+    }
     </style>
   </head>
 <body>
@@ -104,13 +124,11 @@ var context = svg.append("g")
     .attr("class", "context")
     .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
 
-function plotData(noteData) {
-  let data = noteData;
-  //noteData.forEach(function(data){
-    x.domain(d3.extent(data, function(d) { return d.time; }));
-    y.domain([0, d3.max(data, function(d) { return d.keyNumber; })+10]);
-    x2.domain(x.domain());
-    y2.domain(y.domain());
+function plotData(data) {
+  x.domain(d3.extent(data, function(d) { return d.time; }));
+  y.domain([d3.min(data, function(d) { return d.keyNumber; })-10, d3.max(data, function(d) { return d.keyNumber; })+10]);
+  x2.domain(x.domain());
+  y2.domain(y.domain());
     
   let i = 0;
   // append scatter plot to main chart area 
@@ -119,7 +137,7 @@ function plotData(noteData) {
       dots.selectAll("dot")
           .data(data)
           .enter().append("circle")
-          .attr('class', 'dot')
+          .attr('class', function(d) { return 'dot' + ' n' + d.letter; })
           .attr("r",5)
           .style("opacity", .5)
           .attr("cx", function(d) { return x(d.time); })
@@ -155,7 +173,7 @@ function plotData(noteData) {
        dots.selectAll("dot")
           .data(data)
           .enter().append("circle")
-          .attr('class', 'dotContext')
+          .attr('class', function(d) { return 'dotContext' + ' n' + d.letter; })
           .attr("r",3)
           .style("opacity", .5)
           .attr("cx", function(d) { return x2(d.time); })
@@ -170,7 +188,6 @@ function plotData(noteData) {
         .attr("class", "brush")
         .call(brush)
         .call(brush.move, x.range());
-
 }
 
 //create brush function redraw scatterplot with selection
