@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<style>
+</style>
+</head>
+<body>
+<svg width="1200" height="1000"></svg>
+<script>
+/// process midi
+let midiData, noteData, stackedData;
+let bpMinute, bpMeasure, beatPeriod, measurePeriod;
+let keys = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
+const BEAT_RESOLUTION = 8;
+
+function getNoteLetter(note) {
+  return note.name.slice(0,-1).replace('#','s');
+}
+
+function measureFacet(timeStamp, measurePeriod, bpMeasure, beatResoltion = 16) {
+  // facet placement into 1/16 of a beat (or 1/beatResolution)
+  let resolution = bpMeasure * beatResoltion; 
+  let facet = measurePeriod / resolution;
+  return parseInt((timeStamp % measurePeriod) / facet);
+}
+
+function facetRollup(d){
+  let noteSums = {}
+  d.forEach(function(n){
+    noteSums[n.letter] = noteSums[n.letter] || 0;
+    noteSums[n.letter]++;
+  });
+  return noteSums;
+}
+
+MidiConvert.load("bwv-846.midi").then(function(midi){
+  midiData = midi;
+
+  bpMinute = midiData.header.bpm;
+  bpMeasure = midiData.header.timeSignature[0];
+  beatPeriod = (bpMinute / 60);
+  measurePeriod = bpMeasure * beatPeriod;
+
+  let notes = midiData.tracks[2].notes;
+  noteData = [];
+  notes.forEach(function(n){
+    let nd = {
+      letter: getNoteLetter(n),
+      time: n.time,
+      measure: parseInt(n.time / measurePeriod),
+      measurePlacement: n.time % measurePeriod,
+      measureFacet: measureFacet(n.time, measurePeriod, bpMeasure, BEAT_RESOLUTION)
+    }
+    noteData.push(nd);
+  });
+
+  let stackedData = stackData(noteData);
+  console.log(stackedData);
+  plotGraph(stackedData);
+});
+
+function stackData(noteData) {
+  let dataNest = d3.nest().key(function(n){ return n.measureFacet })
+                .rollup(facetRollup)
+                .entries(noteData)
+                .sort(function(a,b){return parseInt(a.key) - parseInt(b.key)});
+
+  let unstackedData = [];
+  dataNest.forEach(function(f){
+    let facetData = { facet : parseInt(f.key) };
+    for(note in f.value){
+      facetData[note] = f.value[note];
+    }
+    unstackedData.push(facetData);
+  });
+
+  let stack = d3.stack()
+    .keys(keys)
+    .value(function(d, key){return d[key] || 0})
+    //.order(d3.stackOrderAscending)
+    .offset(d3.stackOffsetNone)
+    ;
+
+  stackedData = stack(unstackedData);
+  return stackedData;
+}
+
+
+/// draw
+var svg = d3.select("svg");
+var g = svg.append("g")
+    .attr("transform", "translate(" + 600 + "," + 500 + ")");
+
+var ang = d3.scaleLinear().range([0 , 2 * Math.PI]);
+var rad = d3.scaleLinear().range([20, 80]);
+
+function plotGraph(stackedData) {
+  ang.domain([0,BEAT_RESOLUTION * bpMeasure - 1]);
+
+  var area = d3.radialArea()
+      .curve(d3.curveBasisClosed)
+      .angle(function(d, i) { return ang(d.data.facet) })
+      .innerRadius(function(d, i) { return rad(d[0]) })
+      .outerRadius(function(d, i) { return rad(d[1]) });
+
+  var layer = g.selectAll(".layer")
+    .data(stackedData)
+    .enter().append("g")
+    .attr("class", "layer");
+
+  layer.append("path")
+    .attr("class", function(d){return "area" + " n" + d.key})
+    .attr("d", area);
+}
+
+</script>
+</body>
+</html>
