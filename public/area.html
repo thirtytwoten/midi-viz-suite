@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<style>
+</style>
+</head>
+<body>
+<svg width="1200" height="1000"></svg>
+<script>
+// lazy globals for browser runtime hackery
+let midiData, noteData, stackedData, dataNest, measureCount, measurePeriod;
+const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
+const BEAT_RESOLUTION = 1;
+
+function getNoteLetter(note) {
+  return note.name.slice(0,-1).replace('#','s');
+}
+
+MidiConvert.load("bwv-846.midi").then(function(midi){
+  midiData = midi;
+  let bpMeasure = midiData.timeSignature[0];
+  let bpMinute = midiData.header.bpm;
+  let beatPeriod = (bpMinute / 60);
+  measurePeriod = bpMeasure * beatPeriod;
+  let measureResolution = bpMeasure * BEAT_RESOLUTION;
+  let facetLength = measurePeriod / measureResolution;
+  let duration = midiData.duration;
+  measureCount = Math.ceil(duration / (bpMeasure * beatPeriod));
+
+  //let notes = midiData.tracks[2].notes;
+  let notes = midiData.tracks.reduce(function(notes, track){
+    if(!track.isPercussion){
+      notes = notes.concat(track.notes);
+    }
+    return notes;
+  },[]);
+  noteData = notes.map(function(n){ return Object.assign(n, {
+      letter: getNoteLetter(n),
+      measure: Math.floor(n.time / measurePeriod),
+      measureFacet: Math.floor((n.time % measurePeriod) / facetLength)
+  }); });
+
+  stackedData = stackNotesByMeasure(noteData)
+  plotGraph(stackedData, measureCount);
+});
+
+function stackNotesByMeasure(noteData) {
+  nestByMeasureFacet = d3.nest().key(function(n){ return n.measureFacet });
+  nestByMeasure = d3.nest().key(function(n){ return n.measure });
+  nestByFacet = d3.nest().key(function(n){ return n.measure * n.measureFacet });
+
+  let nest = nestByMeasure;
+
+
+  function rollupNoteFreq(d){ return d.reduce(function(noteCounts,note){
+    noteCounts[note.letter] = noteCounts[note.letter] || 0;
+    noteCounts[note.letter]++;
+    return noteCounts;
+  },{})}
+
+  function rollupNoteMagnitude(d){ return d.reduce(function(noteMagnitude,note){
+    noteMagnitude[note.letter] = noteMagnitude[note.letter] || 0;
+    noteMagnitude[note.letter] += note.velocity * Math.min(note.duration, measurePeriod);
+    // includes each note that is started in facet, better implementation would break up the parts of notes into correct facets
+    return noteMagnitude;
+  },{})}
+
+  let rollup = rollupNoteMagnitude;
+
+  function sortAscKey(a,b){return parseInt(a.key) - parseInt(b.key)}
+
+  function flattenFacet(facet){
+    return Object.assign(facet.value, { facetIndex: parseInt(facet.key) });
+  }
+
+  dataNest = nest.rollup(rollup).entries(noteData)
+                  .sort(sortAscKey).map(flattenFacet);
+
+  let stack = d3.stack()
+    .keys(NOTES).value(function(d,key){ return d[key] || 0 })
+    .offset(d3.stackOffsetNone);
+
+  return stack(dataNest);
+}
+
+function plotGraph(stackedData, facetCount) {
+  var svg = d3.select("svg");
+  var areaGraph = svg.append("g")
+        .attr("transform", "translate(" + 100 + "," + 1000 + ")");
+
+  var x = d3.scaleLinear().range([0, 1000]);
+  var y = d3.scaleLinear().range([60, 0]);
+  x.domain([0,facetCount - 1]);
+
+  var areaByMeasure = d3.area()
+      //.curve(d3.curveBasis)
+      .x(function(d, i) { return x(d.data.facetIndex) })
+      .y0(function(d, i) { return y(d[0]) })
+      .y1(function(d, i) { return y(d[1]) });
+
+  areaGraph.selectAll(".layer")
+    .data(stackedData)
+    .enter().append("g")
+    .attr("class", "layer")
+    .append("path")
+    .attr("class", function(d){return "area" + " n" + d.key})
+    .attr("d", areaByMeasure);
+}
+
+</script>
+</body>
+</html>
