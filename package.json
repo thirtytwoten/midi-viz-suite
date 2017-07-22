@@ -1,5 +1,5 @@
 {
-  "name": "midi-measures",
+  "name": "midi-viz-suite",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app"
   },
-  "author": "b",
+  "author": "thirtytwoten",
   "license": "ISC",
   "dependencies": {
     "express": "^4.15.3"
