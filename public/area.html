@@ -28,9 +28,9 @@ button.active {
 <button>play song</button>
 <svg width="1200" height="1000"></svg>
 <script>
-let synth;
+let duration, synth, measurePeriod, xByTime;
 // lazy globals for browser runtime hackery
-let midiData, noteData, stackedData, dataNest, measureCount, measurePeriod;
+let midiData, noteData, stackedData, dataNest, measureCount;
 const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
 const BEAT_RESOLUTION = 1;
 
@@ -46,8 +46,8 @@ MidiConvert.load("bwv-846.midi").then(function(midi){
   measurePeriod = bpMeasure * beatPeriod;
   let measureResolution = bpMeasure * BEAT_RESOLUTION;
   let facetLength = measurePeriod / measureResolution;
-  let duration = midiData.duration;
-  measureCount = Math.ceil(duration / (bpMeasure * beatPeriod));
+  duration = midiData.duration;
+  let measureCount = Math.ceil(duration / (bpMeasure * beatPeriod));
 
   //let notes = midiData.tracks[2].notes;
   let notes = midiData.tracks.reduce(function(notes, track){
@@ -110,15 +110,16 @@ function stackNotesByMeasure(noteData) {
 function plotGraph(stackedData, facetCount) {
   var svg = d3.select("svg");
   var areaGraph = svg.append("g")
-        .attr("transform", "translate(" + 100 + "," + 1000 + ")");
+        .attr("transform", "translate(" + 0 + "," + 550 + ")");
 
-  var x = d3.scaleLinear().range([0, 1000]);
+  let graphWidth = 1000;
+  xByTime = d3.scaleLinear().domain([0,duration]).range([0, graphWidth]);
+  let xByFacet = d3.scaleLinear().domain([0,facetCount - 1]).range([0, graphWidth]);
   var y = d3.scaleLinear().range([60, 0]);
-  x.domain([0,facetCount - 1]);
 
   var areaByMeasure = d3.area()
       //.curve(d3.curveBasis)
-      .x(function(d, i) { return x(d.data.facetIndex) })
+      .x(function(d, i) { return xByFacet(d.data.facetIndex) })
       .y0(function(d, i) { return y(d[0]) })
       .y1(function(d, i) { return y(d[1]) });
 
@@ -129,6 +130,14 @@ function plotGraph(stackedData, facetCount) {
     .append("path")
     .attr("class", function(d){return "area" + " n" + d.key})
     .attr("d", areaByMeasure);
+
+  let playHead = areaGraph.append("line")
+      .attr("id", "playHead")
+      .attr("x1", xByTime(0))
+      .attr("y1", 100)
+      .attr("x2", xByTime(0))
+      .attr("y2", -500)
+      .style("stroke", "grey");
 }
 
 ////// song play back
@@ -160,16 +169,25 @@ function prepAudio(midi){
     }
   }).toMaster();
 
-  let rightHand = midi.get("Piano right").notes;
-  let leftHand = midi.get("Piano left").notes;
-  let rightHandPart = new Tone.Part(playNote, rightHand).start(0);
-  let leftHandPart = new Tone.Part(playNote, leftHand).start(0);
+  // let rightHand = midi.get("Piano right").notes;
+  // let leftHand = midi.get("Piano left").notes;
+  // let rightHandPart = new Tone.Part(playNote, rightHand).start(0);
+  // let leftHandPart = new Tone.Part(playNote, leftHand).start(0);
+  let allNotes = midi.tracks.reduce(function(notes, track){
+    if(!track.isPercussion){
+      notes = notes.concat(track.notes);
+    }
+    return notes;
+  },[]);
+  let allParts = new Tone.Part(playNote, allNotes).start(0);
 
   button.classList.add("active")
 }
 
 function playNote(time, event){
+  console.log(`${time},${xByTime(time)}`);
   synth.triggerAttackRelease(event.name, event.duration, time, event.velocity);
+  d3.select('#playHead').attr('transform', `translate(${xByTime(time)}, 0)`);
   //svg.select(`#key${event.midi}`).transition().attr('fill', 'blue');
   //setTimeout(function(){svg.select(`#key${event.midi}`).transition().attr('fill', 'none')}, event.duration * 1000);
   //console.log(event);
