@@ -85,12 +85,9 @@ function prepAudio(song){
 function playNote(time, event){
   synth.triggerAttackRelease(event.name, event.duration, time, event.velocity);
   scrollChart.playNote(event);
+  rhythmChart.playNote(event);
   // freqChart.svg.selectAll('.' + event.colorClass)
   //   .style('opacity',1)
-  //   .transition().duration(event.duration * 1000)
-  //   .style('opacity',0.75)
-  // rhythmChart.svg.selectAll('.' + event.colorClass)
-  //   .style('opacity',)
   //   .transition().duration(event.duration * 1000)
   //   .style('opacity',0.75)
 }

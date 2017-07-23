@@ -37,7 +37,7 @@ ScrollChart.prototype = {
       .attr("height", this.height + this.margin.top + this.margin.bottom);
   },
   playNote: function(event){
-    this.svg.select('#playHead')
+    this.svg.select('.playHead')
       .attr("x1", this.scaleX(event.time))
       .attr("x2", this.scaleX(event.time))
     this.svg.select(`#${event.id}`)
@@ -85,7 +85,7 @@ ScrollChart.prototype = {
           .call(this.brush.move, this.scaleX.range());
 
     context.append("line")
-        .attr("id", "playHead")
+        .attr("class", "playHead")
         .attr("x1", this.scaleX(0))
         .attr("y1", this.height + 10)
         .attr("x2", this.scaleX(0))

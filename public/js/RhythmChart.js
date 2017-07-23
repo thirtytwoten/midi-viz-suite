@@ -20,6 +20,16 @@ RhythmChart.prototype = {
       .attr("height", this.height + this.margin.top + this.margin.bottom)
     .append("g").attr("transform","translate(" + (this.margin.left + this.width/2) + "," + (this.margin.top + this.height/2) + ")");
   },
+  playNote: function(event){
+    this.svg.select(".radialPlayHead")
+      .attr("x2", Math.cos(this.angleScale(event.measureFacet)) * this.height)
+      .attr("y2", Math.sin(this.angleScale(event.measureFacet)) * this.height);
+
+    // this.svg.selectAll('.' + event.colorClass)
+    //   .style('opacity')
+    //   .transition().duration(event.duration * 1000)
+    //   .style('opacity',0.75);
+  },
   plot: function(){
     let rc = this;
     stackedRadialAreaChart = d3.radialArea()
@@ -35,6 +45,15 @@ RhythmChart.prototype = {
       .append("path")
       .attr("class", function(d){return "area" + " n" + d.key})
       .attr("d", stackedRadialAreaChart);
+
+    this.svg.append("line")
+      .attr("class", "radialPlayHead")
+      .attr("x1", 0)
+      .attr("y1", 0)
+      .attr("x2", this.angleScale(0))
+      .attr("y2", this.height)
+      .style("opacity", .3)
+      .style("stroke", "black");
   },
   getStackedData: function() {
     let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
