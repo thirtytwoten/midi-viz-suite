@@ -8,6 +8,7 @@
 <script type="text/javascript" src="js/Song.js"></script>
 <script type="text/javascript" src="js/FreqChart.js"></script>
 <script type="text/javascript" src="js/RhythmChart.js"></script>
+<script type="text/javascript" src="js/ScrollChart.js"></script>
 <link rel="stylesheet" type="text/css" href="css/style.css">
 <style>
   .songBox {
@@ -37,189 +38,22 @@
 </div>
 
 <script>
-let freqChart, rhythmChart;
-let scrollChartSvg, scaleScrollX, selectedRange;
-let midiData, noteData, stackedData;
+let song, freqChart, rhythmChart, scrollChart;
 
-
-let song = new Song("bwv-846.midi")
+song = new Song("bwv-846.midi");
 song.parse().then(function(s){
   freqChart = new FreqChart(s, "#freqChart");
   freqChart.plot();
   rhythmChart = new RhythmChart(s, '#rhythmChart');
   rhythmChart.plot();
+  scrollChart = new ScrollChart(s, '#scrollChart', freqChart);
+  scrollChart.plot();
+  prepAudio(s);
 })//.catch(function(err){ console.log(err.message) });
 
-// function getNoteLetter(note) {
-//   return note.name.slice(0,-1).replace('#','s');
-// }
-
-// function getNoteId(note) {
-//   return `${note.name}-${note.time}`.replace('#','s').replace('.','-')
-// }
-
-// MidiConvert.load("bwv-846.midi").then(function(midi){
-//   midiData = midi;
-//   let bpMeasure = midiData.header.timeSignature[0];
-//   let bpMinute = midiData.header.bpm;
-//   let beatPeriod = (bpMinute / 60);
-//   let measurePeriod = bpMeasure * beatPeriod;
-//   let measureResolution = bpMeasure * BEAT_RESOLUTION;
-//   let facetLength = measurePeriod / measureResolution;
-
-//   let notes = midiData.tracks.reduce(function(notes,track){
-//     return !track.isPercussion ? notes.concat(track.notes) : notes
-//   },[]);
-//   //let notes = midiData.tracks[1].notes.concat(midiData.tracks[2].notes);
-//   noteData = notes.map(function(n){ return Object.assign(n, {
-//       id: getNoteId(n),
-//       keyNumber: parseInt(n.midi),
-//       letter: getNoteLetter(n),
-//       time: n.time,
-//       measure: parseInt(n.time / measurePeriod),
-//       measureFacet: parseInt((n.time % measurePeriod) / facetLength)
-//   }); });
-
-//   stackedData = stackNotesByFacet(noteData);
-//   plotRadialChart(stackedData, measureResolution);
-//   freqChart = new FreqChart(noteData, "#freqChart");//plotFreqChart(noteData);
-//   freqChart.plot();
-//   plotScrollChart(noteData);
-//   prepAudio(midi);
-//   d3.select(".songBox .songName").text(midiData.header.name);
-// });
-
-// function stackNotesByFacet(noteData) {
-//   let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
-
-//   function rollupNoteFreq(d){ return d.reduce(function(noteCounts,facet){
-//     noteCounts[facet.letter] = noteCounts[facet.letter] || 0;
-//     noteCounts[facet.letter]++;
-//     return noteCounts;
-//   },{})}
-
-//   function sortAscKey(a,b){return parseInt(a.key) - parseInt(b.key)}
-
-//   function flattenFacet(facet){
-//     return Object.assign(facet.value, { facetIndex: parseInt(facet.key) });
-//   }
-
-//   let dataNest = nestByFacet.rollup(rollupNoteFreq).entries(noteData)
-//                   .sort(sortAscKey).map(flattenFacet);
-
-//   let stack = d3.stack()
-//     .keys(NOTES).value(function(d,key){ return d[key] || 0 })
-//     .offset(d3.stackOffsetNone);
-
-//   return stack(dataNest);
-// }
-
-function plotScrollChart(noteData){
-  function minSecFmt(seconds){
-    let min = parseInt(seconds / 60);
-    let sec = parseInt(seconds % 60);
-    return (min + ":" + (sec < 10 ? '0' : '') + sec);
-  }
-
-  var margin = {top: 20, right: 20, bottom: 30, left: 40},
-      width = 1000 - margin.left - margin.right,
-      height = 300 - margin.top - margin.bottom;
-
-  scaleScrollX = d3.scaleLinear().range([0, width]);
-  let scaleScrollY = d3.scaleLinear().range([height, 0]);
-
-  var xAxis = d3.axisBottom(scaleScrollX).tickFormat(minSecFmt),
-      yAxis = d3.axisLeft(scaleScrollY);
-
-  var brush = d3.brushX()
-    .extent([[0, 0], [width, height]])
-    .on("end", brushed);
-
-  scrollChartSvg = d3.select("#scrollChart").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom);
-
-  scrollChartSvg.append("defs").append("clipPath")
-      .attr("id", "clip")
-    .append("rect")
-      .attr("width", width)
-      .attr("height", height);
-
-  var context = scrollChartSvg.append("g")
-    .attr("class", "context");
-
-  scaleScrollX.domain(d3.extent(noteData, function(d) { return d.time; }));
-  scaleScrollY.domain([d3.min(noteData, function(d) { return d.keyNumber; })-2, 
-            d3.max(noteData, function(d) { return d.keyNumber; })+2 ]);
-
-  var dots = context.append("g");
-    dots.attr("clip-path", "url(#clip)");
-    dots.selectAll(".dots")
-        .data(noteData)
-        .enter().append("rect")
-        .attr('class', function(n) { return 'dot' + ' n' + n.letter })
-        .attr('id', function(n){return n.id})
-        .style("opacity", .5)
-        .attr("x", function(n) { return scaleScrollX(n.time) })
-        .attr("y", function(n) { return scaleScrollY(n.keyNumber) })
-        .attr("width", function(n) { return scaleScrollX(n.noteOff) - scaleScrollX(n.noteOn) })
-        .attr("height", 4);
-            
-    context.append("g")
-          .attr("class", "axis axis--x")
-          .attr("transform", "translate(0," + height + ")")
-          .call(scaleScrollX);
-
-    context.append("g")
-          .attr("class", "brush")
-          .call(brush)
-          .call(brush.move, scaleScrollX.range());
-
-    context.append("line")
-        .attr("id", "playHead")
-        .attr("x1", scaleScrollX(0))
-        .attr("y1", height + 10)
-        .attr("x2", scaleScrollX(0))
-        .attr("y2", -10)
-        .style("opacity", .3)
-        .style("stroke", "black");
-
-  function brushed() {
-    var selection = d3.event.selection;
-    //scaleScrollX.domain(selection.map(scaleScrollX.invert, scaleScrollX));
-    selectedRange = selection.map(scaleScrollX.invert, scaleScrollX)
-    freqChart.subSelection(selectedRange);
-    // ^ gives [selectionStartTime, selectionEndTime]
-    //plotFreqChart(notesInTimeRange(noteData, selectedRange))
-
-  }
-}
-
-// function notesInTimeRange(notes,range) {
-//   return notes.filter(function(n){
-//     return n.time >= range[0] && n.time <= range[1];
-//   });
-// }
-
-
-
-
-
-/// audio playback
-var button = document.querySelector("button");
-button.addEventListener("click", function(){
-  if (Tone.Transport.state === "started"){
-    Tone.Transport.stop();
-    button.textContent = "play";
-  } else {
-    Tone.Transport.start("+0.1", 0);
-    button.textContent = "STOP";
-  }
-});
-
-function prepAudio(midi, noteData){
-  Tone.Transport.bpm.value = midi.bpm;
-  Tone.Transport.timeSignature = midi.timeSignature;
+function prepAudio(song){
+  Tone.Transport.bpm.value = song.bpMinute;
+  Tone.Transport.timeSignature = song.midiData.header.timeSignature;
 
   synth = new Tone.PolySynth(8, Tone.Synth, {
     "oscillator": {
@@ -233,9 +67,18 @@ function prepAudio(midi, noteData){
     }
   }).toMaster();
 
-  let tones = midi.get("Piano right").notes.concat(midi.get("Piano left").notes);
-  let noteDataPart = new Tone.Part(playNote, tones).start(0);
+  let songPlay = new Tone.Part(playNote, song.midiNotes).start(0);
 
+  let button = document.querySelector("button");
+  button.addEventListener("click", function(){
+    if (Tone.Transport.state === "started"){
+      Tone.Transport.stop();
+      button.textContent = "play";
+    } else {
+      Tone.Transport.start("+0.1", 0);
+      button.textContent = "STOP";
+    }
+  });
   button.classList.add("active");
 }
 
@@ -244,7 +87,7 @@ function playNote(time, event){
   d3.select('#playHead')
       .attr("x1", scaleScrollX(event.time))
       .attr("x2", scaleScrollX(event.time))
-  scrollChartSvg.select(`#${event.id}`)
+  d3.select('#scrollChart').select(`#${event.id}`)
     .style('opacity',1).attr('height',6)
     .transition().duration(event.duration * 1000)
     .style('opacity',0.5).attr('height',4);
