@@ -5,6 +5,7 @@
 <script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
 <script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
 <script type="text/javascript" src="js/third-party/Tone.js"></script>
+<script type="text/javascript" src="js/FreqChart.js"></script>
 <link rel="stylesheet" type="text/css" href="css/style.css">
 <style>
   .songBox {
@@ -181,78 +182,6 @@ function plotScrollChart(noteData){
 
   }
 }
-
-// function notesInTimeRange(notes,range) {
-//   return notes.filter(function(n){
-//     return n.time >= range[0] && n.time <= range[1];
-//   });
-// }
-
-function FreqChart(noteData, selector) {
-  this.rawData = noteData;
-  this.graphData = this.formatData(noteData);
-  this.selector = selector;
-  this.margin = {top: 20, right: 20, bottom: 30, left: 40};
-  this.width = 500 - this.margin.left - this.margin.right;
-  this.height = 300 - this.margin.top - this.margin.bottom;
-  this.xScale = d3.scaleBand().range([0, this.width]).padding(0.1);
-  this.yScale = d3.scaleLinear().range([this.height, 0]);
-  this.svg = this.makeSvg();
-  this.bars = null;
-}
-
-FreqChart.prototype = {
-  formatData: function(noteData) {
-    return d3.nest().key(function(n){ return n.letter })
-      .rollup(function(notes){ return notes.length })
-      .entries(noteData);
-  },
-  subSelection: function(timeRange){
-    let filteredRaw = this.rawData.filter(function(n){
-      return n.time >= timeRange[0] && n.time <= timeRange[1];
-    });
-    this.graphData = this.formatData(filteredRaw);
-    this.redraw();
-  },
-  makeSvg: function(){
-    return d3.select(this.selector).append('svg')
-              .attr("width", this.width + this.margin.left + this.margin.right)
-              .attr("height", this.height + this.margin.top + this.margin.bottom)
-              .append("g").attr("transform","translate(" + this.margin.left + "," + this.margin.top + ")");
-  },
-  plot: function() {
-    let fc = this;
-    this.xScale.domain(NOTES);
-    this.yScale.domain([0, d3.max(this.graphData, function(d) { return d.value; })]);
-
-    this.bars = this.svg.selectAll(".bar")
-      .data(this.graphData);
-
-    this.draw();
-    this.svg.append("g")
-        .attr("transform", "translate(0," + fc.height + ")")
-        .call(d3.axisBottom(fc.xScale));
-    this.svg.append("g")
-        .call(d3.axisLeft(fc.yScale));
-  },
-  draw: function() {
-    let fc = this;
-    this.bars.enter().append("rect")
-      .attr('class', function(d) { return 'bar' + ' n' + d.key; })
-      .attr("x", function(d) { return fc.xScale(d.key); })
-      .attr("width", fc.xScale.bandwidth())
-      .attr("y", function(d) { return fc.yScale(d.value); })
-      .attr("height", function(d) { return fc.height - fc.yScale(d.value); });
-  },
-  redraw: function() {
-    //d3.select(this.selector).remove();
-    this.bars.remove();
-    this.svg.selectAll('g').remove();
-    //this.bars.exit().remove();
-    //this.draw();
-    this.plot();
-  }
-};
 
 function plotRadialChart(stackedData, facetCount) {
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
