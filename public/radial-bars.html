@@ -29,7 +29,7 @@ MidiConvert.load("bwv-846.midi").then(function(midi){
   let measureResolution = bpMeasure * BEAT_RESOLUTION;
   let facetLength = measurePeriod / measureResolution;
 
-  let notes = midiData.tracks[2].notes;
+  let notes = midiData.tracks[1].notes.concat(midiData.tracks[2].notes);
   noteData = notes.map(function(n){ return {
       letter: getNoteLetter(n),
       time: n.time,
@@ -38,8 +38,9 @@ MidiConvert.load("bwv-846.midi").then(function(midi){
   }; });
 
   stackedData = stackNotesByFacet(noteData);
-  makeFreqChart(noteData);
-  plotGraph(stackedData, measureResolution);
+  plotRadialChart(stackedData, measureResolution);
+
+  plotFreqChart(noteData);
 });
 
 function stackNotesByFacet(noteData) {
@@ -67,14 +68,15 @@ function stackNotesByFacet(noteData) {
   return stack(dataNest);
 }
 
-function makeFreqChart(noteData) {
-  let freqData = d3.nest().key(function(n){ return n.letter })
+function freqChartData(noteData) {
+  return d3.nest().key(function(n){ return n.letter })
     .rollup(function(notes){ return notes.length })
     .entries(noteData);
   plotFreqChart(freqData);
 }
 
-function plotFreqChart(data){
+function plotFreqChart(noteData){
+  let data = freqChartData(noteData);
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
       width = 500 - margin.left - margin.right,
       height = 300 - margin.top - margin.bottom;
@@ -93,7 +95,7 @@ function plotFreqChart(data){
   freqChartSvg.selectAll(".bar")
       .data(data)
     .enter().append("rect")
-      .attr("class", "bar")
+      .attr('class', function(d) { return 'bar' + ' n' + d.key; })
       .attr("x", function(d) { return freqChartXScale(d.key); })
       .attr("width", freqChartXScale.bandwidth())
       .attr("y", function(d) { return freqChartYScale(d.value); })
@@ -108,8 +110,7 @@ function plotFreqChart(data){
 
 };
 
-// plot radial area chart
-function plotGraph(stackedData, facetCount) {
+function plotRadialChart(stackedData, facetCount) {
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
       width = 500 - margin.left - margin.right,
       height = 500 - margin.top - margin.bottom;
@@ -119,12 +120,8 @@ function plotGraph(stackedData, facetCount) {
       .attr("height", height + margin.top + margin.bottom)
     .append("g").attr("transform","translate(" + (margin.left + width/2) + "," + (margin.top + height/2) + ")");
 
-  // var radChartSvg = d3.select("#radChart").append("svg");
-  // var radialAreaGraph = radChartSvg.append("g")
-  //       .attr("transform", "translate(" + 600 + "," + 500 + ")");
-
   var ang = d3.scaleLinear().range([0 , 2 * Math.PI]);
-  var rad = d3.scaleLinear().range([20, 80]);
+  var rad = d3.scaleLinear().range([20, 40]);
   ang.domain([0,facetCount - 1]);
 
   var radialAreaByMeasure = d3.radialArea()
