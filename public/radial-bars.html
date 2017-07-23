@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<style>
+</style>
+</head>
+<body>
+<div id="freqChart"></div>
+<div id="radChart"></div>
+<script>
+let midiData, noteData, stackedData; // lazy globals for browser runtime coding
+const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
+const BEAT_RESOLUTION = 16;
+
+function getNoteLetter(note) {
+  return note.name.slice(0,-1).replace('#','s');
+}
+
+MidiConvert.load("bwv-846.midi").then(function(midi){
+  midiData = midi;
+  let bpMeasure = midiData.header.timeSignature[0];
+  let bpMinute = midiData.header.bpm;
+  let beatPeriod = (bpMinute / 60);
+  let measurePeriod = bpMeasure * beatPeriod;
+  let measureResolution = bpMeasure * BEAT_RESOLUTION;
+  let facetLength = measurePeriod / measureResolution;
+
+  let notes = midiData.tracks[2].notes;
+  noteData = notes.map(function(n){ return {
+      letter: getNoteLetter(n),
+      time: n.time,
+      measure: parseInt(n.time / measurePeriod),
+      measureFacet: parseInt((n.time % measurePeriod) / facetLength)
+  }; });
+
+  stackedData = stackNotesByFacet(noteData);
+  makeFreqChart(noteData);
+  plotGraph(stackedData, measureResolution);
+});
+
+function stackNotesByFacet(noteData) {
+  let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
+
+  function rollupNoteFreq(d){ return d.reduce(function(noteCounts,facet){
+    noteCounts[facet.letter] = noteCounts[facet.letter] || 0;
+    noteCounts[facet.letter]++;
+    return noteCounts;
+  },{})}
+
+  function sortAscKey(a,b){return parseInt(a.key) - parseInt(b.key)}
+
+  function flattenFacet(facet){
+    return Object.assign(facet.value, { facetIndex: parseInt(facet.key) });
+  }
+
+  let dataNest = nestByFacet.rollup(rollupNoteFreq).entries(noteData)
+                  .sort(sortAscKey).map(flattenFacet);
+
+  let stack = d3.stack()
+    .keys(NOTES).value(function(d,key){ return d[key] || 0 })
+    .offset(d3.stackOffsetNone);
+
+  return stack(dataNest);
+}
+
+function makeFreqChart(noteData) {
+  let freqData = d3.nest().key(function(n){ return n.letter })
+    .rollup(function(notes){ return notes.length })
+    .entries(noteData);
+  plotFreqChart(freqData);
+}
+
+function plotFreqChart(data){
+  var margin = {top: 20, right: 20, bottom: 30, left: 40},
+      width = 500 - margin.left - margin.right,
+      height = 300 - margin.top - margin.bottom;
+
+  var freqChartXScale = d3.scaleBand().range([0, width]).padding(0.1);
+  var freqChartYScale = d3.scaleLinear().range([height, 0]);
+
+  var freqChartSvg = d3.select("#freqChart").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g").attr("transform","translate(" + margin.left + "," + margin.top + ")");
+
+  freqChartXScale.domain(NOTES);
+  freqChartYScale.domain([0, d3.max(data, function(d) { return d.value; })]);
+
+  freqChartSvg.selectAll(".bar")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { return freqChartXScale(d.key); })
+      .attr("width", freqChartXScale.bandwidth())
+      .attr("y", function(d) { return freqChartYScale(d.value); })
+      .attr("height", function(d) { return height - freqChartYScale(d.value); });
+
+  freqChartSvg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(freqChartXScale));
+
+  freqChartSvg.append("g")
+      .call(d3.axisLeft(freqChartYScale));
+
+};
+
+// plot radial area chart
+function plotGraph(stackedData, facetCount) {
+  var margin = {top: 20, right: 20, bottom: 30, left: 40},
+      width = 500 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+  var radChartSvg = d3.select("#radChart").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g").attr("transform","translate(" + (margin.left + width/2) + "," + (margin.top + height/2) + ")");
+
+  // var radChartSvg = d3.select("#radChart").append("svg");
+  // var radialAreaGraph = radChartSvg.append("g")
+  //       .attr("transform", "translate(" + 600 + "," + 500 + ")");
+
+  var ang = d3.scaleLinear().range([0 , 2 * Math.PI]);
+  var rad = d3.scaleLinear().range([20, 80]);
+  ang.domain([0,facetCount - 1]);
+
+  var radialAreaByMeasure = d3.radialArea()
+      .curve(d3.curveBasisClosed)
+      .angle(function(d, i) { return ang(d.data.facetIndex) })
+      .innerRadius(function(d, i) { return rad(d[0]) })
+      .outerRadius(function(d, i) { return rad(d[1]) });
+
+  radChartSvg.selectAll(".layer")
+    .data(stackedData)
+    .enter().append("g")
+    .attr("class", "layer")
+    .append("path")
+    .attr("class", function(d){return "area" + " n" + d.key})
+    .attr("d", radialAreaByMeasure);
+}
+
+</script>
+</body>
+</html>
