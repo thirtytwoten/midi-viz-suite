@@ -10,10 +10,12 @@
 </style>
 </head>
 <body>
+<button>play</button>
 <div id="freqChart"></div>
 <div id="radChart"></div>
 <div id="scrollChart"></div>
 <script>
+let scrollChartSvg, scaleScrollX;
 let midiData, noteData, stackedData; // lazy globals for browser runtime coding
 const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
 const BEAT_RESOLUTION = 16;
@@ -49,6 +51,7 @@ MidiConvert.load("bwv-846.midi").then(function(midi){
   plotRadialChart(stackedData, measureResolution);
   plotFreqChart(noteData);
   plotScrollChart(noteData);
+  prepAudio(midi);
 });
 
 function stackNotesByFacet(noteData) {
@@ -87,8 +90,8 @@ function plotScrollChart(noteData){
       width = 700 - margin.left - margin.right,
       height = 150 - margin.top - margin.bottom;
 
-  var scaleScrollX = d3.scaleLinear().range([0, width]),
-      scaleScrollY = d3.scaleLinear().range([height, 0]);
+  scaleScrollX = d3.scaleLinear().range([0, width]);
+  let scaleScrollY = d3.scaleLinear().range([height, 0]);
 
   var xAxis = d3.axisBottom(scaleScrollX).tickFormat(minSecFmt),
       yAxis = d3.axisLeft(scaleScrollY);
@@ -97,7 +100,7 @@ function plotScrollChart(noteData){
     .extent([[0, 0], [width, height]])
     .on("brush", brushed);
 
-  var scrollChartSvg = d3.select("#scrollChart").append("svg")
+  scrollChartSvg = d3.select("#scrollChart").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom);
 
@@ -223,6 +226,64 @@ function plotRadialChart(stackedData, facetCount) {
     .append("path")
     .attr("class", function(d){return "area" + " n" + d.key})
     .attr("d", radialAreaByMeasure);
+}
+
+/// audio playback
+var button = document.querySelector("button");
+button.addEventListener("click", function(){
+  if (Tone.Transport.state === "started"){
+    Tone.Transport.stop();
+    button.textContent = "play";
+  } else {
+    Tone.Transport.start("+0.1", 0);
+    button.textContent = "STOP";
+  }
+});
+
+function prepAudio(midi, noteData){
+  Tone.Transport.bpm.value = midi.bpm;
+  Tone.Transport.timeSignature = midi.timeSignature;
+
+  synth = new Tone.PolySynth(8, Tone.Synth, {
+    "oscillator": {
+      "type": "sine3"
+    },
+    "envelope": {
+      "attack": 0.03,
+      "decay": 0.1,
+      "sustain": 0.2,
+      "release": 0.6
+    }
+  }).toMaster();
+
+  let rightHand = midi.get("Piano right").notes;
+  let leftHand = midi.get("Piano left").notes;
+  let rightHandPart = new Tone.Part(playNote, rightHand).start(0);
+  let leftHandPart = new Tone.Part(playNote, leftHand).start(0);
+  // let allNotes = midi.tracks.reduce(function(notes, track){
+  //   if(!track.isPercussion){
+  //     notes = notes.concat(track.notes);
+  //   }
+  //   return notes;
+  // },[]);
+  // let allParts = new Tone.Part(playNote, allNotes).start(0);
+  //let noteDataPart = new Tone.Part(playNote, noteData).start(0);
+
+  button.classList.add("active");
+}
+
+function playNote(time, event){
+  synth.triggerAttackRelease(event.name, event.duration, time, event.velocity);
+  d3.select('#playHead')
+      .attr("x1", scaleScrollX(event.time))
+      .attr("x2", scaleScrollX(event.time))
+  scrollChartSvg.select(`#${event.id}`)
+    .style('opacity',1).attr('height',6)
+    .transition().duration(event.duration * 1000)
+    .style('opacity',0.5).attr('height',4);
+
+  //setTimeout(function(){svg.select(`#key${event.midi}`).transition().attr('fill', 'none')}, event.duration * 1000);
+  //console.log(event);
 }
 
 </script>
