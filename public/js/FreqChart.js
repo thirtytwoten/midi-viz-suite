@@ -1,6 +1,7 @@
-function FreqChart(noteData, selector) {
-  this.rawData = noteData;
-  this.graphData = this.formatData(noteData);
+function FreqChart(song, selector) {
+  this.song = song;
+  this.rawData = song.noteData;
+  this.graphData = this.formatData(song.noteData);
   this.selector = selector;
   this.margin = {top: 20, right: 20, bottom: 30, left: 40};
   this.width = 500 - this.margin.left - this.margin.right;
@@ -31,7 +32,7 @@ FreqChart.prototype = {
   },
   plot: function() {
     let fc = this;
-    this.xScale.domain(NOTES);
+    this.xScale.domain(this.song.basicNotes);
     this.yScale.domain([0, d3.max(this.graphData, function(d) { return d.value; })]);
 
     this.svg.selectAll(".bar").data(this.graphData).enter()

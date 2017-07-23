@@ -5,6 +5,7 @@
 <script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
 <script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
 <script type="text/javascript" src="js/third-party/Tone.js"></script>
+<script type="text/javascript" src="js/Song.js"></script>
 <script type="text/javascript" src="js/FreqChart.js"></script>
 <link rel="stylesheet" type="text/css" href="css/style.css">
 <style>
@@ -41,41 +42,50 @@ let midiData, noteData, stackedData; // lazy globals for browser runtime coding
 const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
 const BEAT_RESOLUTION = 16;
 
-function getNoteLetter(note) {
-  return note.name.slice(0,-1).replace('#','s');
-}
 
-function getNoteId(note) {
-  return `${note.name}-${note.time}`.replace('#','s').replace('.','-')
-}
-
-MidiConvert.load("bwv-846.midi").then(function(midi){
-  midiData = midi;
-  let bpMeasure = midiData.header.timeSignature[0];
-  let bpMinute = midiData.header.bpm;
-  let beatPeriod = (bpMinute / 60);
-  let measurePeriod = bpMeasure * beatPeriod;
-  let measureResolution = bpMeasure * BEAT_RESOLUTION;
-  let facetLength = measurePeriod / measureResolution;
-
-  let notes = midiData.tracks[1].notes.concat(midiData.tracks[2].notes);
-  noteData = notes.map(function(n){ return Object.assign(n, {
-      id: getNoteId(n),
-      keyNumber: parseInt(n.midi),
-      letter: getNoteLetter(n),
-      time: n.time,
-      measure: parseInt(n.time / measurePeriod),
-      measureFacet: parseInt((n.time % measurePeriod) / facetLength)
-  }); });
-
-  stackedData = stackNotesByFacet(noteData);
-  plotRadialChart(stackedData, measureResolution);
-  freqChart = new FreqChart(noteData, "#freqChart");//plotFreqChart(noteData);
+let song = new Song("bwv-846.midi").parse().then(function(s){
+  freqChart = new FreqChart(s, "#freqChart");
   freqChart.plot();
-  plotScrollChart(noteData);
-  prepAudio(midi);
-  d3.select(".songBox .songName").text(midiData.header.name);
-});
+})//.catch(function(err){ console.log(err.message) });
+
+// function getNoteLetter(note) {
+//   return note.name.slice(0,-1).replace('#','s');
+// }
+
+// function getNoteId(note) {
+//   return `${note.name}-${note.time}`.replace('#','s').replace('.','-')
+// }
+
+// MidiConvert.load("bwv-846.midi").then(function(midi){
+//   midiData = midi;
+//   let bpMeasure = midiData.header.timeSignature[0];
+//   let bpMinute = midiData.header.bpm;
+//   let beatPeriod = (bpMinute / 60);
+//   let measurePeriod = bpMeasure * beatPeriod;
+//   let measureResolution = bpMeasure * BEAT_RESOLUTION;
+//   let facetLength = measurePeriod / measureResolution;
+
+//   let notes = midiData.tracks.reduce(function(notes,track){
+//     return !track.isPercussion ? notes.concat(track.notes) : notes
+//   },[]);
+//   //let notes = midiData.tracks[1].notes.concat(midiData.tracks[2].notes);
+//   noteData = notes.map(function(n){ return Object.assign(n, {
+//       id: getNoteId(n),
+//       keyNumber: parseInt(n.midi),
+//       letter: getNoteLetter(n),
+//       time: n.time,
+//       measure: parseInt(n.time / measurePeriod),
+//       measureFacet: parseInt((n.time % measurePeriod) / facetLength)
+//   }); });
+
+//   stackedData = stackNotesByFacet(noteData);
+//   plotRadialChart(stackedData, measureResolution);
+//   freqChart = new FreqChart(noteData, "#freqChart");//plotFreqChart(noteData);
+//   freqChart.plot();
+//   plotScrollChart(noteData);
+//   prepAudio(midi);
+//   d3.select(".songBox .songName").text(midiData.header.name);
+// });
 
 function stackNotesByFacet(noteData) {
   let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
@@ -182,6 +192,14 @@ function plotScrollChart(noteData){
 
   }
 }
+
+// function notesInTimeRange(notes,range) {
+//   return notes.filter(function(n){
+//     return n.time >= range[0] && n.time <= range[1];
+//   });
+// }
+
+
 
 function plotRadialChart(stackedData, facetCount) {
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
