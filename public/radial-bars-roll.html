@@ -7,6 +7,7 @@
 <script type="text/javascript" src="js/third-party/Tone.js"></script>
 <script type="text/javascript" src="js/Song.js"></script>
 <script type="text/javascript" src="js/FreqChart.js"></script>
+<script type="text/javascript" src="js/RhythmChart.js"></script>
 <link rel="stylesheet" type="text/css" href="css/style.css">
 <style>
   .songBox {
@@ -30,22 +31,23 @@
 <div class="songBox">
   <h3 class="songName"></h3>
   <div id="freqChart"></div>
-  <div id="radChart"></div>
+  <div id="rhythmChart"></div>
   <div id="scrollChart"></div>
   <button>play</button>
 </div>
 
 <script>
-let freqChart;
+let freqChart, rhythmChart;
 let scrollChartSvg, scaleScrollX, selectedRange;
-let midiData, noteData, stackedData; // lazy globals for browser runtime coding
-const NOTES = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
-const BEAT_RESOLUTION = 16;
+let midiData, noteData, stackedData;
 
 
-let song = new Song("bwv-846.midi").parse().then(function(s){
+let song = new Song("bwv-846.midi")
+song.parse().then(function(s){
   freqChart = new FreqChart(s, "#freqChart");
   freqChart.plot();
+  rhythmChart = new RhythmChart(s, '#rhythmChart');
+  rhythmChart.plot();
 })//.catch(function(err){ console.log(err.message) });
 
 // function getNoteLetter(note) {
@@ -87,30 +89,30 @@ let song = new Song("bwv-846.midi").parse().then(function(s){
 //   d3.select(".songBox .songName").text(midiData.header.name);
 // });
 
-function stackNotesByFacet(noteData) {
-  let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
+// function stackNotesByFacet(noteData) {
+//   let nestByFacet = d3.nest().key(function(n){ return n.measureFacet });
 
-  function rollupNoteFreq(d){ return d.reduce(function(noteCounts,facet){
-    noteCounts[facet.letter] = noteCounts[facet.letter] || 0;
-    noteCounts[facet.letter]++;
-    return noteCounts;
-  },{})}
+//   function rollupNoteFreq(d){ return d.reduce(function(noteCounts,facet){
+//     noteCounts[facet.letter] = noteCounts[facet.letter] || 0;
+//     noteCounts[facet.letter]++;
+//     return noteCounts;
+//   },{})}
 
-  function sortAscKey(a,b){return parseInt(a.key) - parseInt(b.key)}
+//   function sortAscKey(a,b){return parseInt(a.key) - parseInt(b.key)}
 
-  function flattenFacet(facet){
-    return Object.assign(facet.value, { facetIndex: parseInt(facet.key) });
-  }
+//   function flattenFacet(facet){
+//     return Object.assign(facet.value, { facetIndex: parseInt(facet.key) });
+//   }
 
-  let dataNest = nestByFacet.rollup(rollupNoteFreq).entries(noteData)
-                  .sort(sortAscKey).map(flattenFacet);
+//   let dataNest = nestByFacet.rollup(rollupNoteFreq).entries(noteData)
+//                   .sort(sortAscKey).map(flattenFacet);
 
-  let stack = d3.stack()
-    .keys(NOTES).value(function(d,key){ return d[key] || 0 })
-    .offset(d3.stackOffsetNone);
+//   let stack = d3.stack()
+//     .keys(NOTES).value(function(d,key){ return d[key] || 0 })
+//     .offset(d3.stackOffsetNone);
 
-  return stack(dataNest);
-}
+//   return stack(dataNest);
+// }
 
 function plotScrollChart(noteData){
   function minSecFmt(seconds){
@@ -201,34 +203,7 @@ function plotScrollChart(noteData){
 
 
 
-function plotRadialChart(stackedData, facetCount) {
-  var margin = {top: 20, right: 20, bottom: 30, left: 40},
-      width = 400 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
 
-  var radChartSvg = d3.select("#radChart").append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g").attr("transform","translate(" + (margin.left + width/2) + "," + (margin.top + height/2) + ")");
-
-  var ang = d3.scaleLinear().range([0 , 2 * Math.PI]);
-  var rad = d3.scaleLinear().range([15,30]);
-  ang.domain([0,facetCount - 1]);
-
-  var radialAreaByMeasure = d3.radialArea()
-      .curve(d3.curveBasisClosed)
-      .angle(function(d, i) { return ang(d.data.facetIndex) })
-      .innerRadius(function(d, i) { return rad(d[0]) })
-      .outerRadius(function(d, i) { return rad(d[1]) });
-
-  radChartSvg.selectAll(".layer")
-    .data(stackedData)
-    .enter().append("g")
-    .attr("class", "layer")
-    .append("path")
-    .attr("class", function(d){return "area" + " n" + d.key})
-    .attr("d", radialAreaByMeasure);
-}
 
 /// audio playback
 var button = document.querySelector("button");

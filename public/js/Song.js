@@ -24,7 +24,7 @@ Song.prototype = {
           s.bpMeasure = midi.header.timeSignature[0];
           s.bpMinute = midi.header.bpm;
           s.beatPeriod = (s.bpMinute / 60);
-          s.measurePeriod = s.pMeasure * s.beatPeriod;
+          s.measurePeriod = s.bpMeasure * s.beatPeriod;
           s.measureResolution = s.bpMeasure * s.beatResolution;
           s.facetLength = s.measurePeriod / s.measureResolution;
           s.midiNotes = s.getMidiNotes();
@@ -43,7 +43,7 @@ Song.prototype = {
       id: s.getNoteId(n),
       letter: s.getNoteLetter(n),
       measure: parseInt(n.time / s.measurePeriod),
-      measureBucket: parseInt((n.time % s.measurePeriod) / s.facetLength)
+      measureFacet: parseInt((n.time % s.measurePeriod) / s.facetLength)
     });});
   },
   getNoteId: function(note){
@@ -53,32 +53,3 @@ Song.prototype = {
     return note.name.slice(0,-1).replace('#','s');
   }
 }
-
-
-// MidiConvert.load("bwv-846.midi").then(function(midi){
-//   midiData = midi;
-//   let bpMeasure = midiData.header.timeSignature[0];
-//   let bpMinute = midiData.header.bpm;
-//   let beatPeriod = (this.bpMinute / 60);
-//   let measurePeriod = this.bpMeasure * this.beatPeriod;
-//   let measureResolution = this.bpMeasure * this.beatResolution;
-//   let facetLength = this.measurePeriod / this.measureResolution;
-
-//   let notes = midiData.tracks[1].notes.concat(midiData.tracks[2].notes);
-//   noteData = notes.map(function(n){ return Object.assign(n, {
-//       id: getNoteId(n),
-//       keyNumber: parseInt(n.midi),
-//       letter: getNoteLetter(n),
-//       time: n.time,
-//       measure: parseInt(n.time / this.measurePeriod),
-//       measureFacet: parseInt((n.time % this.measurePeriod) / this.facetLength)
-//   }); });
-
-//   // stackedData = stackNotesByFacet(noteData);
-//   // plotRadialChart(stackedData, measureResolution);
-//   // freqChart = new FreqChart(noteData, "#freqChart");
-//   // freqChart.plot();
-//   // plotScrollChart(noteData);
-//   // prepAudio(midi);
-//   // d3.select(".songBox .songName").text(midiData.header.name);
-// });
