@@ -6,6 +6,7 @@ function ScrollChart(song, selector, subSelectGraph){
   this.margin = {top: 20, right: 20, bottom: 30, left: 40},
   this.width = 1000 - this.margin.left - this.margin.right,
   this.height = 300 - this.margin.top - this.margin.bottom;
+  this.noteHeight = 7;
   this.scaleX = d3.scaleLinear().range([0, this.width]);
   this.scaleY = d3.scaleLinear().range([this.height, 0]);
   this.xAxis = d3.axisBottom(this.scaleX).tickFormat(this.minSecFmt);
@@ -35,6 +36,15 @@ ScrollChart.prototype = {
       .attr("width", this.width + this.margin.left + this.margin.right)
       .attr("height", this.height + this.margin.top + this.margin.bottom);
   },
+  playNote: function(event){
+    this.svg.select('#playHead')
+      .attr("x1", this.scaleX(event.time))
+      .attr("x2", this.scaleX(event.time))
+    this.svg.select(`#${event.id}`)
+      .attr('height',this.noteHeight+2).style('opacity',1)
+      .transition().duration(event.duration * 1000)
+      .attr('height',this.noteHeight).style('opacity',0.75);
+  },
   plot: function(){
     let noteData = this.song.noteData;
     let sc = this;
@@ -62,7 +72,7 @@ ScrollChart.prototype = {
         .attr("x", function(n) { return sc.scaleX(n.time) })
         .attr("y", function(n) { return sc.scaleY(n.midi) })
         .attr("width", function(n) { return sc.scaleX(n.noteOff) - sc.scaleX(n.noteOn) })
-        .attr("height", 4);
+        .attr("height", this.noteHeight);
 
     context.append("g")
           .attr("class", "axis axis--x")

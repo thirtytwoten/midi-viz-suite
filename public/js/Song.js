@@ -41,6 +41,7 @@ Song.prototype = {
     let s = this;
     return this.midiNotes.map(function(n){ return Object.assign(n,{
       id: s.getNoteId(n),
+      colorClass: s.getColorClass(n),
       letter: s.getNoteLetter(n),
       measure: parseInt(n.time / s.measurePeriod),
       measureFacet: parseInt((n.time % s.measurePeriod) / s.facetLength)
@@ -51,5 +52,8 @@ Song.prototype = {
   },
   getNoteLetter: function(note){
     return note.name.slice(0,-1).replace('#','s');
+  },
+  getColorClass: function(note){
+    return 'n' + this.getNoteLetter(note);
   }
 }
