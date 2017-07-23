@@ -15,6 +15,11 @@
         pointer-events: initial;
         opacity: 1;
       }
+/*      .dot style not working */
+      .dot {
+        border-radius: 2px;
+        border: 2px solid #73AD21;
+      }
     </style>
   </head>
 <body>
@@ -57,9 +62,9 @@ function minSecFmt(seconds){
   return (min + ":" + (sec < 10 ? '0' : '') + sec);
 }
 
-var margin = {top: 20, right: 20, bottom: 160, left: 50},
-    margin2 = {top: 380, right: 20, bottom: 30, left: 40},
-    width = 960 - margin.left - margin.right,
+var margin = {top: 20, right: 20, bottom: 140, left: 50},
+    margin2 = {top: 400, right: 20, bottom: 30, left: 40},
+    width = 780 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom,
     height2 = 500 - margin2.top - margin2.bottom;
 
@@ -121,10 +126,10 @@ function plotData(data) {
   // brush chart area      
   var dots = context.append("g");
   dots.attr("clip-path", "url(#clip)");
-  dots.selectAll("noteRect")
+  dots.selectAll(".dots")
       .data(data)
       .enter().append("rect")
-      .attr('class', function(n) { return 'dotContext' + ' n' + n.letter; })
+      .attr('class', function(n) { return 'dot' + ' n' + n.letter; })
       .attr('id', function(n){return n.id})
       .style("opacity", .5)
       .attr("x", function(n) { return x2(n.time); })
