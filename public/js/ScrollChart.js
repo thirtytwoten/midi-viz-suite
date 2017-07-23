@@ -58,7 +58,7 @@ ScrollChart.prototype = {
         .enter().append("rect")
         .attr('class', function(n) { return 'dot' + ' n' + n.letter })
         .attr('id', function(n){return n.id})
-        .style("opacity", .5)
+        .style("opacity", 1)
         .attr("x", function(n) { return sc.scaleX(n.time) })
         .attr("y", function(n) { return sc.scaleY(n.midi) })
         .attr("width", function(n) { return sc.scaleX(n.noteOff) - sc.scaleX(n.noteOn) })

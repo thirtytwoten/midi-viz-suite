@@ -85,8 +85,8 @@ function prepAudio(song){
 function playNote(time, event){
   synth.triggerAttackRelease(event.name, event.duration, time, event.velocity);
   d3.select('#playHead')
-      .attr("x1", scaleScrollX(event.time))
-      .attr("x2", scaleScrollX(event.time))
+      .attr("x1", scrollChart.scaleX(event.time))
+      .attr("x2", scrollChart.scaleX(event.time))
   d3.select('#scrollChart').select(`#${event.id}`)
     .style('opacity',1).attr('height',6)
     .transition().duration(event.duration * 1000)
