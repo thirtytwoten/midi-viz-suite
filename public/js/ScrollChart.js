@@ -1,3 +1,5 @@
+//dep: d3
+
 function ScrollChart(song, selector, subSelectGraph){
   this.song = song;
   this.selector = selector;

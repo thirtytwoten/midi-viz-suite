@@ -1,6 +1,8 @@
+//dep: d3
+
 function RhythmChart(song, selector){
   this.song = song;
-  this.selector = selector; //maybe only use this for passing into plot fn?
+  this.selector = selector;
   this.facetCount = song.measureResolution;
   this.margin = {top: 20, right: 20, bottom: 30, left: 40};
   this.width = 400 - this.margin.left - this.margin.right;

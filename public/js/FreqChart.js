@@ -1,3 +1,5 @@
+//dep d3
+
 function FreqChart(song, selector) {
   this.song = song;
   this.rawData = song.noteData;

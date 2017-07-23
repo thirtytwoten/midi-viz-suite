@@ -1,4 +1,4 @@
-// depends on MidiFile.js // and Tone.js to work
+// depends on MidiFile.js & d3.js
 
 function Song(path, beatResolution = 16){
   this.basicNotes = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
