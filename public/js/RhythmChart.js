@@ -9,7 +9,7 @@ function RhythmChart(song, selector){
   this.height = 400 - this.margin.top - this.margin.bottom;
   this.svg = this.makeSvg();
   this.angleScale = d3.scaleLinear().domain([0,this.facetCount - 1]).range([0 , 2 * Math.PI]);
-  this.radiusScale = d3.scaleLinear().range([15,30]); //TODO: make range dynamic
+  this.radiusScale = d3.scaleLinear().range([15,30]); //TODO: make range dynamic so it doesn't cut off
   this.graphData = this.getStackedData();
 }
 
