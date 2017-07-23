@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.js"></script>
+     <script type="text/javascript" src="js/third-party/MidiConvert.js"></script>
+     <script type="text/javascript" src="js/third-party/Tone.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <style>
+      button {
+      /*  width: 100px;
+        left: 50%;
+        margin-top: 20px;
+        margin-left: -50px;
+        height: 40px;
+        text-align: center;
+        position: absolute;*/
+        pointer-events: none;
+        opacity: 0.4;
+      }
+      button.active {
+        pointer-events: initial;
+        opacity: 1;
+      }
+    </style>
+  </head>
+<body>
+<button>play song</button>
+<script type="text/javascript">
+
+///////// midi processing
+
+var midiData, noteData, bpm;
+
+function getNoteLetter(note) {
+  return note.name.slice(0,-1).replace('#','s');
+}
+
+MidiConvert.load("./bwv-846.midi").then(function(midi){
+  midiData = midi;
+  bpm = midiData.header.bpm;
+
+  let notes = midiData.tracks[2].notes;
+  noteData = [];
+  notes.forEach(function(n){
+    let nd = {
+      letter: getNoteLetter(n),
+      keyNumber: parseInt(n.midi),
+      time: n.time,
+      duration: n.duration,
+      noteOff: n.noteOff,
+      noteOn: n.noteOn
+    }
+    noteData.push(nd);
+  });
+
+  plotData(noteData);
+  prepAudio(midi);
+});
+
+////////////////// scatter plot w/ brushing
+///// adapted from http://bl.ocks.org/rajvansia/ce6903fad978d20773c41ee34bf6735c
+
+function minSecFmt(seconds){
+  let min = parseInt(seconds / 60);
+  let sec = parseInt(seconds % 60);
+  return (min + ":" + (sec < 10 ? '0' : '') + sec);
+}
+
+var margin = {top: 20, right: 20, bottom: 110, left: 50},
+    margin2 = {top: 430, right: 20, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom,
+    height2 = 500 - margin2.top - margin2.bottom;
+
+var x = d3.scaleLinear().range([0, width]),
+    x2 = d3.scaleLinear().range([0, width]),
+    y = d3.scaleLinear().range([height, 0]),
+    y2 = d3.scaleLinear().range([height2, 0]);
+
+var xAxis = d3.axisBottom(x).tickFormat(minSecFmt),
+    xAxis2 = d3.axisBottom(x2).tickFormat(minSecFmt),
+    yAxis = d3.axisLeft(y);
+
+var brush = d3.brushX()
+    .extent([[0, 0], [width, height2]])
+    .on("brush", brushed);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom);
+
+svg.append("defs").append("clipPath")
+    .attr("id", "clip")
+  .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var context = svg.append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+function plotData(data) {
+  x.domain(d3.extent(data, function(d) { return d.time; }));
+  y.domain([d3.min(data, function(d) { return d.keyNumber; })-10, d3.max(data, function(d) { return d.keyNumber; })+10]);
+  x2.domain(x.domain());
+  y2.domain(y.domain());
+
+  // main chart area
+  var noteRects = focus.append("g");
+      noteRects.attr("clip-path", "url(#clip)");
+      noteRects.selectAll("noteRect")
+          .data(data)
+          .enter().append("rect")
+          .attr('class', function(d) { return 'noteRect' + ' n' + d.letter; })
+          .style("opacity", .5)
+          .attr("x", function(d) { return x(d.time); })
+          .attr("y", function(d) { return y(d.keyNumber); })
+          .attr("width", function(d) { return x(d.noteOff) - x(d.noteOn); })
+          .attr("height", function(d) { return 5});
+          
+  focus.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+  focus.append("g")
+        .attr("class", "axis axis--y")
+        .call(yAxis);
+        
+  focus.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left)
+        .attr("x",0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Midi Key");
+        
+  svg.append("text")             
+        .attr("transform",
+              "translate(" + ((width + margin.right + margin.left)/2) + " ," + 
+                             (height + margin.top + margin.bottom) + ")")
+        .style("text-anchor", "middle")
+        .text("Time");
+        
+  // brush chart area      
+   var dots = context.append("g");
+       dots.attr("clip-path", "url(#clip)");
+       dots.selectAll("noteRect")
+          .data(data)
+          .enter().append("rect")
+          .attr('class', function(d) { return 'dotContext' + ' n' + d.letter; })
+          .style("opacity", .5)
+          .attr("x", function(d) { return x2(d.time); })
+          .attr("y", function(d) { return y2(d.keyNumber); })
+          .attr("width", function(d) { return x2(d.noteOff) - x2(d.noteOn); })
+          .attr("height", function(d) { return 3});
+          
+  context.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + height2 + ")")
+        .call(xAxis2);
+
+  context.append("g")
+        .attr("class", "brush")
+        .call(brush)
+        .call(brush.move, x.range());
+
+  context.append("line")
+      .attr("id", "playHead")
+      .attr("x1", x(0))
+      .attr("y1", 90)
+      .attr("x2", x(0))
+      .attr("y2", -20)
+      .style("opacity", .5)
+      .style("stroke", "black");
+}
+
+//create brush function redraw midiplot with selection
+function brushed() {
+  var selection = d3.event.selection;
+  x.domain(selection.map(x2.invert, x2));
+  focus.selectAll(".noteRect")
+        .attr("x", function(d) { return x(d.time); })
+        .attr("y", function(d) { return y(d.keyNumber); });
+  focus.select(".axis--x").call(xAxis);
+}
+
+/// audio playback
+var button = document.querySelector("button");
+button.addEventListener("click", function(){
+  if (Tone.Transport.state === "started"){
+    Tone.Transport.stop();
+    button.textContent = "START";
+  } else {
+    Tone.Transport.start("+0.1", 0);
+    button.textContent = "STOP";
+  }
+});
+
+function prepAudio(midi){
+  Tone.Transport.bpm.value = midi.bpm;
+  Tone.Transport.timeSignature = midi.timeSignature;
+
+  synth = new Tone.PolySynth(8, Tone.Synth, {
+    "oscillator": {
+      "type": "sine3"
+    },
+    "envelope": {
+      "attack": 0.03,
+      "decay": 0.1,
+      "sustain": 0.2,
+      "release": 0.6
+    }
+  }).toMaster();
+
+  // let rightHand = midi.get("Piano right").notes;
+  // let leftHand = midi.get("Piano left").notes;
+  // let rightHandPart = new Tone.Part(playNote, rightHand).start(0);
+  // let leftHandPart = new Tone.Part(playNote, leftHand).start(0);
+  let allNotes = midi.tracks.reduce(function(notes, track){
+    if(!track.isPercussion){
+      notes = notes.concat(track.notes);
+    }
+    return notes;
+  },[]);
+  let allParts = new Tone.Part(playNote, allNotes).start(0);
+
+  button.classList.add("active");
+}
+
+function playNote(time, event){
+  //console.log(`${time},${x(time)}`);
+  synth.triggerAttackRelease(event.name, event.duration, time, event.velocity);
+  d3.select('#playHead').attr('transform', `translate(${x(time)}, 0)`);
+  //svg.select(`#key${event.midi}`).transition().attr('fill', 'blue');
+  //setTimeout(function(){svg.select(`#key${event.midi}`).transition().attr('fill', 'none')}, event.duration * 1000);
+  //console.log(event);
+}
+
+</script>
+</body>
+</html>
