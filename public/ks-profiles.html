@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="//d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript" src="js/FreqChart.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<style>
+.do {
+  fill: rgb(110, 64, 170);
+}
+.do\# {
+  fill: rgb(178, 60, 178);
+}
+.re {
+  fill: rgb(238, 67, 149);
+}
+.re\# {
+  fill: rgb(255, 94, 99);
+}
+.mi {
+  fill: rgb(255, 140, 56);
+}
+.fa {
+  fill: rgb(217, 194, 49);
+}
+.fa\# {
+  fill: rgb(175, 240, 91);
+}
+.so {
+  fill: rgb(96, 247, 96);
+}
+.so\# {
+  fill: rgb(40, 234, 141);
+}
+.la {
+  fill: rgb(26, 199, 194);
+}
+.la\# {
+  fill: rgb(47, 150, 224);
+}
+.ti {
+  fill: rgb(84, 101, 214);
+}
+</style>
+</head>
+<body>
+<h2>Key-Finding Algorithms</h2>
+<h2>Algorithmic Key-Finding Algorithms</h2>
+<h3>Like the Krumhansl-Schmuckler key-finding algorithm....</h3>
+<p>Read more here: <a href="http://rnhart.net/articles/key-finding/">http://rnhart.net/articles/key-finding/</a></p>
+
+<p>
+<table class="br"><caption>major profile</caption>
+<tr><td>do</td><td>do#</td><td>re</td><td>re#</td><td>mi</td><td>fa</td><td>fa#</td><td>so</td><td>so#</td><td>la</td><td>la#</td><td>ti</td></tr>
+<tr><td>6.35</td><td>2.23</td><td>3.48</td><td>2.33</td><td>4.38</td><td>4.09</td><td>2.52</td><td>5.19</td><td>2.39</td><td>3.66</td><td>2.29</td><td>2.88</td></tr>
+</table></p>
+<div id='majorProfile'></div>
+<p>
+<table class="br"><caption>minor profile</caption>
+<tr><td>la</td><td>la#</td><td>ti</td><td>do</td><td>do#</td><td>re</td><td>re#</td><td>mi</td><td>fa</td><td>fa#</td><td>so</td><td>so#</td></tr>
+<tr><td>6.33</td><td>2.68</td><td>3.52</td><td>5.38</td><td>2.60</td><td>3.53</td><td>2.54</td><td>4.75</td><td>3.98</td><td>2.69</td><td>3.34</td><td>3.17</td></tr>
+</table></p>
+<div id='minorProfile'></div>
+
+<script>
+
+let majorProfile = [
+  { 'do' : 6.35 },
+  { 'do\#' : 2.23 },
+  { 're' : 3.48 },
+  { 're\#' : 2.33},
+  { 'mi' : 4.38 },
+  { 'fa' : 4.09},
+  { 'fa\#' : 2.52},
+  { 'so' : 5.19},
+  { 'so\#' : 2.39},
+  { 'la' : 3.66},
+  { 'la\#' : 2.29},
+  { 'ti' : 2.88}
+];
+
+let minorProfile = [
+  { 'la' : 6.33 },
+  { 'la\#' : 2.68},
+  { 'ti' : 3.52 },
+  { 'do' : 5.38},
+  { 'do\#' : 2.60},
+  { 're' : 3.53},
+  { 're\#' : 2.54},
+  { 'mi' : 4.75},
+  { 'fa' : 3.98},
+  { 'fa\#' : 2.69},
+  { 'so' : 3.34},
+  { 'so\#' : 3.17}
+];
+
+function KSProfileChart(ksProfile, selector) {
+  this.profile = ksProfile;
+  this.selector = selector;
+  this.margin = {top: 20, right: 20, bottom: 30, left: 40};
+  this.width = 600 - this.margin.left - this.margin.right;
+  this.height = 350 - this.margin.top - this.margin.bottom;
+  this.xScale = d3.scaleBand().range([0, this.width]).padding(0.1);
+  this.yScale = d3.scaleLinear().range([this.height, 0]);
+  this.svg = this.makeSvg();
+}
+
+KSProfileChart.prototype = {
+  makeSvg: function(){
+    return d3.select(this.selector).append('svg')
+              .attr("width", this.width + this.margin.left + this.margin.right)
+              .attr("height", this.height + this.margin.top + this.margin.bottom)
+              .append("g").attr("transform","translate(" + this.margin.left + "," + this.margin.top + ")");
+  },
+  plot: function() {
+    let kspc = this;
+    this.xScale.domain(this.profile.map(function(d){return Object.keys(d)[0]}));
+    this.yScale.domain([0,7]);
+
+    this.svg.selectAll(".bar").data(this.profile).enter()
+      .append("rect")
+        .attr('class', function(d) { return 'bar ' + Object.keys(d)[0]; })
+        .attr("x", function(d) { return kspc.xScale(Object.keys(d)[0]); })
+        .attr("width", kspc.xScale.bandwidth())
+        .attr("y", function(d) { return kspc.yScale(Object.values(d)[0]); })
+        .attr("height", function(d) { return kspc.height - kspc.yScale(Object.values(d)[0]); });
+    this.svg.append("g")
+        .attr("transform", "translate(0," + kspc.height + ")")
+        .call(d3.axisBottom(kspc.xScale));
+    this.svg.append("g")
+        .call(d3.axisLeft(kspc.yScale));
+  }
+};
+
+let majorProfileChart = new KSProfileChart(majorProfile, '#majorProfile');
+let minorProfileChart = new KSProfileChart(minorProfile, '#minorProfile');
+majorProfileChart.plot();
+minorProfileChart.plot();
+
+</script>
+</body>
+</html>

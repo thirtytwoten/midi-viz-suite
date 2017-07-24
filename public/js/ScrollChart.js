@@ -74,7 +74,7 @@ ScrollChart.prototype = {
         .attr("x", function(n) { return sc.scaleX(n.time) })
         .attr("y", function(n) { return sc.scaleY(n.midi) })
         .attr("width", function(n) { return sc.scaleX(n.noteOff) - sc.scaleX(n.noteOn) })
-        .attr("height", this.noteHeight);
+        .attr("height", this.noteHeight); //sc.scaleY.bandwidth?
 
     context.append("g")
           .attr("class", "axis axis--x")

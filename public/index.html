@@ -40,14 +40,25 @@
 <script>
 let song, freqChart, rhythmChart, scrollChart;
 
-let songFiles = [
-  'songs/bwv-846.midi',
-  'songs/someone_to_watch_over_me-ggershwin.mid',
-  'songs/someone_to_watch_over_me-Sinatra_lg.mid',
-  'songs/Marvin_Gaye_-_I_Heard_It_Through_the_Grapevine.mid'
-]
+  let s = ['./songs/Cyndi_Lauper_-_Girls_Just_Want_to_Have_Fun.mid',
+  './songs/BB_King_-_How_Blue_Can_You_Get.mid', //symetrical
+  './songs/Bluegrass_-_Battle_Of_New_Orleans.mid',//sparse pallet
+  './songs/Aretha_Franklin_-_Respect.mid',
+  './songs/Johann_Sebastian_Bach_-_Fugue_BWV_542_-Great-.mid',
+  './songs/Johann_Sebastian_Bach_-_Fugue_BWV_578_-Little-.mid', //
+  './songs/Johann_Sebastian_Bach_-_Well-Tempered_Clavier_Book_1_Fugue_13.mid',
+  './songs/Video_Game_Themes_-_Donkey_Kong_Country.mid', ////
+  './songs/Video_Game_Themes_-_Zelda-_Ocarina_Of_Time.mid', ///////////
+  './songs/Yago_silva_-_Pink_Panther_Theme.mid.mid', //
+  './songs/TV_Themes_-_Seinfeld.mid', /////
+  './songs/TV_Themes_-_I_Dream_Of_Jeannie.mid', /////
+  './songs/Marvin_Gaye_-_I_Heard_It_Through_the_Grapevine.mid',
+  './songs/Bee_Gees_-_Stayin_Alive.mid', //3/4
+  './songs/Movie_Themes_-_The_Wizard_of_Oz_-_Over_the_Rainbow.mid', //simple cross
+  './songs/Notorious_BIG_-_Big_Poppa.mid',
+  ]; 
 
-song = new Song(songFiles[3]);
+song = new Song('./songs/Video_Game_Themes_-_Zelda-_Ocarina_Of_Time.mid');
 song.parse().then(function(s){
   freqChart = new FreqChart(s, "#freqChart");
   freqChart.plot();
