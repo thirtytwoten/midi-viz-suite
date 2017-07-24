@@ -40,13 +40,20 @@
 <script>
 let song, freqChart, rhythmChart, scrollChart;
 
-song = new Song("bwv-846.midi");
+let songFiles = [
+  'songs/bwv-846.midi',
+  'songs/someone_to_watch_over_me-ggershwin.mid',
+  'songs/someone_to_watch_over_me-Sinatra_lg.mid',
+  'songs/Marvin_Gaye_-_I_Heard_It_Through_the_Grapevine.mid'
+]
+
+song = new Song(songFiles[3]);
 song.parse().then(function(s){
   freqChart = new FreqChart(s, "#freqChart");
   freqChart.plot();
   rhythmChart = new RhythmChart(s, '#rhythmChart');
   rhythmChart.plot();
-  scrollChart = new ScrollChart(s, '#scrollChart', freqChart);
+  scrollChart = new ScrollChart(s, '#scrollChart', [freqChart,rhythmChart]);
   scrollChart.plot();
   prepAudio(s);
 })//.catch(function(err){ console.log(err.message) });

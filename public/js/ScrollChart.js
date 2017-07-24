@@ -1,6 +1,6 @@
 //dep: d3
 
-function ScrollChart(song, selector, subSelectGraph){
+function ScrollChart(song, selector, subSelectCharts){
   this.song = song;
   this.selector = selector;
   this.margin = {top: 20, right: 20, bottom: 30, left: 40},
@@ -13,14 +13,16 @@ function ScrollChart(song, selector, subSelectGraph){
   this.yAxis = d3.axisLeft(this.scaleY);
   this.svg = this.makeSvg();
 
-  if (subSelectGraph) {
-    this.subSelectGraph = subSelectGraph;
+  if (subSelectCharts) {
+    this.subSelectCharts = subSelectCharts;
     this.brush = d3.brushX().extent([[0, 0], [this.width, this.height]]).on("end", brushed);
     let sc = this;
     function brushed() {
       let selection = d3.event.selection;
-      selectedRange = selection.map(sc.scaleX.invert, sc.scaleX)
-      subSelectGraph.subSelection(selectedRange);
+      selectedRange = selection.map(sc.scaleX.invert, sc.scaleX);
+      subSelectCharts.forEach(function(c){
+        c.subSelection(selectedRange);
+      });
     }
   }
 }

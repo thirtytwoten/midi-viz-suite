@@ -19,7 +19,7 @@ Song.prototype = {
   parse: function(){
     let s = this;
     return (new Promise( function(resolve, reject){
-        MidiConvert.load("bwv-846.midi").then(function(midi){
+        MidiConvert.load(s.path).then(function(midi){
           s.midiData = midi;
           s.bpMeasure = midi.header.timeSignature[0];
           s.bpMinute = midi.header.bpm;

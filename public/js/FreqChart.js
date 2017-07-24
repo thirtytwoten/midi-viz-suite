@@ -15,8 +15,13 @@ function FreqChart(song, selector) {
 
 FreqChart.prototype = {
   formatData: function(noteData) {
+    // return d3.nest().key(function(n){ return n.letter })
+    //   .rollup(function(notes){ return notes.length })
+    //   .entries(noteData);
     return d3.nest().key(function(n){ return n.letter })
-      .rollup(function(notes){ return notes.length })
+      .rollup(function(notes){ return notes.reduce(function(magnitude,note){
+        return magnitude + (note.velocity * note.duration)
+      },0); })
       .entries(noteData);
   },
   subSelection: function(timeRange){
